@@ -69,12 +69,16 @@ export default function Login() {
 
   // If already authenticated and ready, redirect
   useEffect(() => {
-    if (isAuthenticated && userProfile && !needsOnboarding) {
+    if (isAuthenticated && userProfile) {
+      if (needsOnboarding && userProfile.role === 'garage_owner') {
+        navigate('/garage-register', { replace: true });
+        return;
+      }
       const from = location.state?.from;
       if (from && from !== '/login') {
         navigate(from, { replace: true });
       } else {
-        const dest = userProfile.role === 'garage_owner' ? '/garage-dashboard' : '/';
+        const dest = userProfile.role === 'garage_owner' ? '/garage-dashboard' : '/my-account';
         navigate(dest, { replace: true });
       }
     }
@@ -111,9 +115,17 @@ export default function Login() {
 
     try {
       if (authMode === 'signin') {
-        const user = await signInWithEmail(email, password);
-        const displayName = user.displayName || userProfile?.name || email.split('@')[0] || 'User';
+        const { user, profile } = await signInWithEmail(email, password, selectedRole);
+        const displayName = profile?.name || user?.displayName || email.split('@')[0] || 'User';
         addToast(`Welcome "${displayName}"! 👋`, 'success');
+
+        const effectiveRole = profile?.role || selectedRole;
+        const from = location.state?.from;
+        if (effectiveRole === 'garage_owner') {
+          navigate('/garage-dashboard', { replace: true });
+        } else {
+          navigate(from && from !== '/login' ? from : '/my-account', { replace: true });
+        }
       } else {
         const cleanPhone = phone.replace(/\D/g, '').slice(-10);
         await signUpWithEmail(email, password, {
@@ -123,13 +135,13 @@ export default function Login() {
           role: selectedRole
         });
         addToast(`Welcome "${name.trim()}"! 🎉`, 'success');
-      }
 
-      const from = location.state?.from;
-      if (selectedRole === 'garage_owner') {
-        navigate('/garage-dashboard', { replace: true });
-      } else {
-        navigate(from && from !== '/login' ? from : '/', { replace: true });
+        if (selectedRole === 'garage_owner') {
+          navigate('/garage-register', { replace: true });
+        } else {
+          const from = location.state?.from;
+          navigate(from && from !== '/login' ? from : '/my-account', { replace: true });
+        }
       }
     } catch (err) {
       console.error('Auth error:', err);
@@ -161,13 +173,14 @@ export default function Login() {
     try {
       const gUser = await signInWithGoogle(selectedRole);
       if (gUser) {
-        const displayName = gUser.displayName || 'User';
+        const displayName = gUser.profile?.name || gUser.user?.displayName || gUser.displayName || 'User';
         addToast(`Welcome "${displayName}"! 🌟`, 'success');
+        const effectiveRole = gUser.profile?.role || selectedRole;
         const from = location.state?.from;
-        if (selectedRole === 'garage_owner') {
+        if (effectiveRole === 'garage_owner') {
           navigate('/garage-dashboard', { replace: true });
         } else {
-          navigate(from && from !== '/login' ? from : '/', { replace: true });
+          navigate(from && from !== '/login' ? from : '/my-account', { replace: true });
         }
       }
     } catch (err) {

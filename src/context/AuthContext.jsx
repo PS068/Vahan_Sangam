@@ -93,47 +93,85 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  // Load Firestore profile for user
-  const loadUserProfile = async (firebaseUser) => {
+  // Fast, timeout-guarded profile loader that never hangs the UI
+  const ensureUserProfile = async (firebaseUser, defaultRole = 'user') => {
+    const fallbackProfile = {
+      uid: firebaseUser.uid,
+      name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+      email: firebaseUser.email || '',
+      phone: firebaseUser.phoneNumber || '',
+      address: '',
+      photoURL: firebaseUser.photoURL || null,
+      role: defaultRole,
+      emailVerified: firebaseUser.emailVerified || false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
     try {
       const userRef = doc(db, 'users', firebaseUser.uid);
-      const snap = await getDoc(userRef);
+      const fetchPromise = getDoc(userRef);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Firestore timeout')), 2200)
+      );
 
-      if (snap.exists()) {
+      const snap = await Promise.race([fetchPromise, timeoutPromise]);
+      if (snap && snap.exists()) {
         const data = snap.data();
         if (firebaseUser.photoURL && data.photoURL !== firebaseUser.photoURL) {
           data.photoURL = firebaseUser.photoURL;
-          await setDoc(userRef, { photoURL: firebaseUser.photoURL }, { merge: true });
+          setDoc(userRef, { photoURL: firebaseUser.photoURL }, { merge: true }).catch(() => {});
         }
         setUserProfile(data);
 
         // Check if garage owner needs garage registration
         if (data.role === 'garage_owner') {
-          const garageRef = doc(db, 'garages', firebaseUser.uid);
-          const garageSnap = await getDoc(garageRef);
-          if (!garageSnap.exists()) {
-            setNeedsOnboarding(true);
-            return;
+          try {
+            const garageRef = doc(db, 'garages', firebaseUser.uid);
+            const garageSnap = await Promise.race([
+              getDoc(garageRef),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1800))
+            ]);
+            setNeedsOnboarding(!garageSnap || !garageSnap.exists());
+          } catch {
+            setNeedsOnboarding(false);
           }
+        } else {
+          setNeedsOnboarding(false);
         }
-        setNeedsOnboarding(false);
+        return data;
       } else {
-        setUserProfile(null);
-        setNeedsOnboarding(true);
+        // Create initial profile in Firestore
+        setDoc(userRef, fallbackProfile).catch(e => console.warn('User profile initial create notice:', e));
+        setUserProfile(fallbackProfile);
+        setNeedsOnboarding(defaultRole === 'garage_owner');
+        return fallbackProfile;
       }
     } catch (err) {
-      console.error('Error loading user profile:', err);
-      setNeedsOnboarding(true);
+      console.warn('Fast profile fallback applied:', err);
+      setUserProfile(fallbackProfile);
+      setNeedsOnboarding(defaultRole === 'garage_owner');
+      return fallbackProfile;
     }
   };
 
+  const loadUserProfile = async (firebaseUser) => {
+    const targetRole = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('vahansangam_target_role')) || 'user';
+    return await ensureUserProfile(firebaseUser, targetRole);
+  };
+
   // Sign in with Email & Password
-  const signInWithEmail = async (email, password) => {
+  const signInWithEmail = async (email, password, desiredRole = 'user') => {
     try {
       localStorage.removeItem('vahansangam_demo_user');
+      setLoading(true);
       const result = await signInWithEmailAndPassword(auth, email.trim(), password);
-      return result.user;
+      setCurrentUser(result.user);
+      const profile = await ensureUserProfile(result.user, desiredRole);
+      setLoading(false);
+      return { user: result.user, profile };
     } catch (err) {
+      setLoading(false);
       console.error('Email sign-in error:', err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         throw new Error('Invalid email or password. Please check your credentials or create a new account.');
@@ -155,6 +193,7 @@ export const AuthProvider = ({ children }) => {
   const signUpWithEmail = async (email, password, { name, phone, address, role = 'user' }) => {
     try {
       localStorage.removeItem('vahansangam_demo_user');
+      setLoading(true);
       const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = result.user;
 
@@ -170,23 +209,22 @@ export const AuthProvider = ({ children }) => {
         email: user.email,
         phone: phone.trim(),
         address: address ? address.trim() : '',
+        photoURL: null,
         role,
         emailVerified: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
-      await setDoc(doc(db, 'users', user.uid), profileData);
+      setDoc(doc(db, 'users', user.uid), profileData).catch(e => console.warn('User doc save notice:', e));
+      setCurrentUser(user);
       setUserProfile(profileData);
+      setNeedsOnboarding(role === 'garage_owner');
+      setLoading(false);
 
-      if (role === 'garage_owner') {
-        setNeedsOnboarding(true);
-      } else {
-        setNeedsOnboarding(false);
-      }
-
-      return user;
+      return { user, profile: profileData };
     } catch (err) {
+      setLoading(false);
       console.error('Sign-up error:', err);
       if (err.code === 'auth/email-already-in-use') {
         throw new Error('An account with this email already exists. Please sign in instead.');
@@ -256,7 +294,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       const result = await signInWithPopup(auth, googleProvider);
-      return result.user;
+      setCurrentUser(result.user);
+      const profile = await ensureUserProfile(result.user, targetRole);
+      setLoading(false);
+      return { user: result.user, profile };
     } catch (err) {
       console.error('Google sign-in error:', err);
       if (err.code === 'auth/popup-closed-by-user') {

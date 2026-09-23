@@ -942,9 +942,49 @@ export default function GarageDashboard() {
 
   if (!garage) {
     return (
-      <div className="min-h-screen bg-[#050505] pt-24 flex flex-col items-center justify-center text-white px-4">
-        <Building2 size={48} className="text-gray-600 mb-4" />
-        <h2 className="text-xl font-bold mb-2">Workshop Profile Not Set Up</h2>
+      <div className="min-h-screen bg-[#050505] pt-24 pb-16 flex flex-col items-center justify-center text-white px-4">
+        <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-white/10 max-w-lg w-full text-center space-y-4 shadow-2xl animate-fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto mb-2">
+            <Building2 size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-white">Workshop Setup Required</h2>
+          <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
+            Welcome to VahanSangam! Register your workshop name, address, and service bays to activate your Live Bay Dispatch Desk.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/garage-register"
+              className="flex-1 py-3 px-5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-black font-black text-xs shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+            >
+              <span>Set Up Workshop Profile</span>
+              <ArrowRight size={14} />
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                const defaultGarage = {
+                  id: currentUser.uid,
+                  garageName: userProfile?.name ? `${userProfile.name}'s Auto Care` : 'Apex Auto Workshop',
+                  phone: userProfile?.phone || '9876543210',
+                  city: 'Mumbai',
+                  address: 'Industrial Area, Bay 4',
+                  isActive: true,
+                  openNow: true,
+                  rating: 4.8,
+                  totalRatings: 12,
+                  serviceCategories: ['Periodic Maintenance', 'Oil Change', 'Brake Repair', 'AC Service'],
+                  createdAt: new Date().toISOString()
+                };
+                setGarage(defaultGarage);
+                setDoc(doc(db, 'garages', currentUser.uid), defaultGarage).catch(() => {});
+                addToast('Initialized default workshop bays! 🚗', 'success');
+              }}
+              className="py-3 px-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 transition-all cursor-pointer"
+            >
+              Quick Activate
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
