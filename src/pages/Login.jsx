@@ -44,12 +44,12 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState('');
   const [unauthorizedDomain, setUnauthorizedDomain] = useState(false);
   const [copiedDomain, setCopiedDomain] = useState(false);
+  const [operationNotAllowed, setOperationNotAllowed] = useState(false);
 
   const {
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
-    loginAsDemoUser,
     currentUser,
     isAuthenticated,
     userProfile,
@@ -133,29 +133,20 @@ export default function Login() {
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setErrorMessage(err.message || 'Authentication failed. Please try again.');
-      addToast(err.message || 'Authentication failed', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const isNotAllowed =
+        err.code === 'auth/operation-not-allowed' ||
+        err.message?.includes('operation-not-allowed') ||
+        err.message?.includes('operation not allowed') ||
+        err.message?.includes('Email/Password provider is not enabled');
 
-  // Quick Demo Login for instant testing / evaluator access
-  const handleQuickDemo = async (role) => {
-    setIsLoading(true);
-    setErrorMessage('');
-    try {
-      await loginAsDemoUser(role);
-      addToast(`Signed in as Demo ${role === 'garage_owner' ? 'Workshop Partner' : 'Customer'}! 🚀`, 'success');
-      if (role === 'garage_owner') {
-        navigate('/garage-dashboard', { replace: true });
+      if (isNotAllowed) {
+        setOperationNotAllowed(true);
+        setErrorMessage('Email/Password sign-in is disabled in Firebase Console.');
+        addToast('Email/Password disabled in Firebase Console', 'error');
       } else {
-        const from = location.state?.from;
-        navigate(from && from !== '/login' ? from : '/', { replace: true });
+        setErrorMessage(err.message || 'Authentication failed. Please try again.');
+        addToast(err.message || 'Authentication failed', 'error');
       }
-    } catch (err) {
-      console.error('Demo login error:', err);
-      addToast('Demo login failed. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -339,25 +330,35 @@ export default function Login() {
                   <li>Click <strong>Add domain</strong> and paste: <code className="text-amber-300">{typeof window !== 'undefined' ? window.location.hostname : ''}</code></li>
                 </ol>
               </div>
+            </div>
+          )}
 
-              <div className="pt-2 border-t border-amber-500/20">
-                <p className="text-[11px] text-gray-300 mb-2 font-semibold">
-                  Or bypass setup & explore the app immediately:
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemo(selectedRole)}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
-                >
-                  <Zap size={14} />
-                  <span>Continue with 1-Click Instant Demo Access</span>
-                </button>
+          {/* Email/Password Provider Not Allowed Banner */}
+          {operationNotAllowed && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-200 text-xs mb-5 animate-fade-in space-y-2.5">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle size={18} className="shrink-0 text-amber-400 mt-0.5" />
+                <div>
+                  <h4 className="font-extrabold text-white text-sm">Email/Password Provider Disabled in Firebase</h4>
+                  <p className="text-gray-300 mt-1 leading-relaxed">
+                    To allow manual email sign-in & registration, enable Email/Password in your Firebase Console.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-gray-400 space-y-1 bg-black/50 p-3 rounded-xl border border-white/5">
+                <p className="font-bold text-gray-300">How to enable in 3 steps:</p>
+                <ol className="list-decimal list-inside space-y-0.5 text-gray-300 pl-1">
+                  <li>Go to <strong>Firebase Console</strong> → <strong>Authentication</strong></li>
+                  <li>Click the <strong>Sign-in method</strong> tab</li>
+                  <li>Click <strong>Email/Password</strong> → Toggle <strong>Enable</strong> → Click <strong>Save</strong></li>
+                </ol>
               </div>
             </div>
           )}
 
           {/* Standard Error Message */}
-          {errorMessage && !unauthorizedDomain && (
+          {errorMessage && !unauthorizedDomain && !operationNotAllowed && (
             <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 mb-5 animate-fade-in">
               <AlertCircle size={16} className="shrink-0 text-rose-400" />
               <span>{errorMessage}</span>
@@ -509,31 +510,6 @@ export default function Login() {
             <span>Continue with Google</span>
           </button>
 
-          {/* Quick 1-Click Testing Access for Evaluators & Demos */}
-          <div className="mt-5 p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center animate-fade-in">
-            <p className="text-[11px] text-gray-400 mb-2.5 font-medium flex items-center justify-center gap-1.5">
-              <Sparkles size={13} className="text-amber-400 shrink-0" />
-              <span>Instant preview without Google Auth:</span>
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('user')}
-                disabled={isLoading}
-                className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white transition-all cursor-pointer active:scale-95"
-              >
-                👤 Customer Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemo('garage_owner')}
-                disabled={isLoading}
-                className="py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] font-bold text-amber-300 hover:text-amber-200 transition-all cursor-pointer active:scale-95"
-              >
-                🔧 Garage HQ Demo
-              </button>
-            </div>
-          </div>
 
           {/* Footer Terms */}
           <p className="text-center text-[10px] text-gray-500 mt-5 pt-3 border-t border-white/5">

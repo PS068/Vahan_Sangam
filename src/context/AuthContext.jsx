@@ -144,6 +144,9 @@ export const AuthProvider = ({ children }) => {
       if (err.code === 'auth/invalid-email') {
         throw new Error('Please enter a valid email address.');
       }
+      if (err.code === 'auth/operation-not-allowed') {
+        throw new Error('Email/Password provider is not enabled in Firebase Console. Go to Firebase Console -> Authentication -> Sign-in method -> Email/Password and click Enable.');
+      }
       throw new Error(err.message || 'Login failed. Please try again.');
     }
   };
@@ -190,6 +193,9 @@ export const AuthProvider = ({ children }) => {
       }
       if (err.code === 'auth/weak-password') {
         throw new Error('Password should be at least 6 characters long.');
+      }
+      if (err.code === 'auth/operation-not-allowed') {
+        throw new Error('Email/Password provider is not enabled in Firebase Console. Go to Firebase Console -> Authentication -> Sign-in method -> Email/Password and click Enable.');
       }
       throw new Error(err.message || 'Registration failed. Please try again.');
     }
