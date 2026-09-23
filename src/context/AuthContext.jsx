@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db, googleProvider } from '../firebase';
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -37,6 +39,42 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('vahansangam_demo_user');
       }
     }
+
+    // Check if returning from a mobile signInWithRedirect
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result && result.user) {
+          setCurrentUser(result.user);
+          const targetRole = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('vahansangam_target_role')) || 'user';
+          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('vahansangam_target_role');
+
+          const userRef = doc(db, 'users', result.user.uid);
+          const snap = await getDoc(userRef);
+          if (!snap.exists()) {
+            const profile = {
+              uid: result.user.uid,
+              name: result.user.displayName || 'User',
+              email: result.user.email,
+              phone: result.user.phoneNumber || '',
+              address: '',
+              role: targetRole,
+              emailVerified: true,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            };
+            await setDoc(userRef, profile);
+            setUserProfile(profile);
+            if (targetRole === 'garage_owner') {
+              setNeedsOnboarding(true);
+            }
+          } else {
+            await loadUserProfile(result.user);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Redirect sign-in check warning:', err);
+      });
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -194,18 +232,32 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Sign in with Google
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (targetRole = 'user') => {
     try {
       localStorage.removeItem('vahansangam_demo_user');
+      
+      const isMobile = typeof window !== 'undefined' && (
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (window.innerWidth <= 768 && ('ontouchstart' in window || navigator.maxTouchPoints > 0))
+      );
+
+      if (isMobile) {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('vahansangam_target_role', targetRole);
+        }
+        await signInWithRedirect(auth, googleProvider);
+        return null; // Will redirect on mobile without popup freeze
+      }
+
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
     } catch (err) {
       console.error('Google sign-in error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
-        throw new Error('Sign-in cancelled. Please try again.');
+        throw new Error('Sign-in cancelled. If you are on mobile, please open this link in Chrome or Safari (outside WhatsApp/Instagram), or use the instant Demo Login.');
       }
       if (err.code === 'auth/popup-blocked') {
-        throw new Error('Popup was blocked by your browser. Please allow popups for this site.');
+        throw new Error('Popup was blocked by your browser. Please allow popups or use Demo Login.');
       }
       if (err.code === 'auth/unauthorized-domain') {
         const domain = typeof window !== 'undefined' ? window.location.hostname : 'your-domain';

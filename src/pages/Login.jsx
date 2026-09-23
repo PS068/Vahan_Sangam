@@ -168,14 +168,16 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const gUser = await signInWithGoogle();
-      const displayName = gUser.displayName || 'User';
-      addToast(`Welcome "${displayName}"! 🌟`, 'success');
-      const from = location.state?.from;
-      if (selectedRole === 'garage_owner') {
-        navigate('/garage-dashboard', { replace: true });
-      } else {
-        navigate(from && from !== '/login' ? from : '/', { replace: true });
+      const gUser = await signInWithGoogle(selectedRole);
+      if (gUser) {
+        const displayName = gUser.displayName || 'User';
+        addToast(`Welcome "${displayName}"! 🌟`, 'success');
+        const from = location.state?.from;
+        if (selectedRole === 'garage_owner') {
+          navigate('/garage-dashboard', { replace: true });
+        } else {
+          navigate(from && from !== '/login' ? from : '/', { replace: true });
+        }
       }
     } catch (err) {
       console.error('Google sign-in catch:', err);
