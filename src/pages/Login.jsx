@@ -19,7 +19,9 @@ import {
   EyeOff,
   Sparkles,
   Zap,
-  Building2
+  Building2,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastNotification';
@@ -40,6 +42,8 @@ export default function Login() {
   // States
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
 
   const {
     signInWithGoogle,
@@ -136,9 +140,31 @@ export default function Login() {
     }
   };
 
+  // Quick Demo Login for instant testing / evaluator access
+  const handleQuickDemo = async (role) => {
+    setIsLoading(true);
+    setErrorMessage('');
+    try {
+      await loginAsDemoUser(role);
+      addToast(`Signed in as Demo ${role === 'garage_owner' ? 'Workshop Partner' : 'Customer'}! 🚀`, 'success');
+      if (role === 'garage_owner') {
+        navigate('/garage-dashboard', { replace: true });
+      } else {
+        const from = location.state?.from;
+        navigate(from && from !== '/login' ? from : '/', { replace: true });
+      }
+    } catch (err) {
+      console.error('Demo login error:', err);
+      addToast('Demo login failed. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
     setErrorMessage('');
+    setUnauthorizedDomain(false);
     setIsLoading(true);
 
     try {
@@ -152,8 +178,22 @@ export default function Login() {
         navigate(from && from !== '/login' ? from : '/', { replace: true });
       }
     } catch (err) {
-      setErrorMessage(err.message || 'Google sign-in failed.');
-      addToast(err.message || 'Google sign-in failed', 'error');
+      console.error('Google sign-in catch:', err);
+      const isDomainError =
+        err.code === 'auth/unauthorized-domain' ||
+        err.message?.includes('auth/unauthorized-domain') ||
+        err.message?.includes('not authorized in Firebase Console') ||
+        err.message?.includes('unauthorized domain');
+
+      if (isDomainError) {
+        setUnauthorizedDomain(true);
+        const domain = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+        setErrorMessage(`Firebase authorization required for domain: ${domain}`);
+        addToast('Domain authorization required in Firebase Console', 'error');
+      } else {
+        setErrorMessage(err.message || 'Google sign-in failed.');
+        addToast(err.message || 'Google sign-in failed', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -179,17 +219,17 @@ export default function Login() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#050505] flex flex-col justify-center py-24 px-4 relative overflow-hidden text-white">
+    <div className="min-h-screen bg-[#050505] flex flex-col justify-center py-20 sm:py-24 px-3.5 sm:px-6 relative overflow-x-hidden text-white">
       {/* Ambient glowing background */}
-      <div className="absolute top-10 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-10 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-blue-500/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-lg mx-auto">
         
-        {/* Clean Header (No double logo) */}
-        <div className="text-center mb-8 animate-fade-in">
-          <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">
-            {authMode === 'signin' ? 'Welcome' : 'Create Account'}
+        {/* Clean Header */}
+        <div className="text-center mb-6 sm:mb-8 animate-fade-in px-2">
+          <h1 className="text-2xl sm:text-4xl font-black text-white mb-2">
+            {authMode === 'signin' ? 'Welcome Back' : 'Create Account'}
           </h1>
           <p className="text-gray-400 text-xs sm:text-sm">
             {authMode === 'signin'
@@ -199,17 +239,17 @@ export default function Login() {
         </div>
 
         {/* Account Role Selector */}
-        <div className="mb-6 animate-fade-in">
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
+        <div className="mb-5 sm:mb-6 animate-fade-in">
+          <label className="block text-[11px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
             Select Account Role
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {roles.map((r) => (
               <button
                 key={r.id}
                 type="button"
-                onClick={() => { setSelectedRole(r.id); setErrorMessage(''); }}
-                className={`p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-start gap-3 ${
+                onClick={() => { setSelectedRole(r.id); setErrorMessage(''); setUnauthorizedDomain(false); }}
+                className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-start gap-3 ${
                   selectedRole === r.id ? r.activeBorder : r.inactiveBorder
                 }`}
               >
@@ -226,7 +266,7 @@ export default function Login() {
         </div>
 
         {/* Main Form Container */}
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl relative animate-fade-in">
+        <div className="glass-panel rounded-3xl p-5 sm:p-8 border border-white/10 shadow-2xl relative animate-fade-in">
           
           {/* Sign In vs Register Tabs */}
           <div className="flex rounded-2xl bg-black/50 p-1 mb-6 border border-white/10">
@@ -254,8 +294,68 @@ export default function Login() {
             </button>
           </div>
 
-          {/* Error Message */}
-          {errorMessage && (
+          {/* Domain Authorization Notice Card */}
+          {unauthorizedDomain && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-200 text-xs mb-5 animate-fade-in space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle size={18} className="shrink-0 text-amber-400 mt-0.5" />
+                <div>
+                  <h4 className="font-extrabold text-white text-sm">Firebase Domain Authorization Required</h4>
+                  <p className="text-gray-300 mt-1 leading-relaxed">
+                    Google Sign-In is blocked because your deployment domain is not in Firebase's allowed list.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/60 rounded-xl p-3 border border-amber-500/20 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[10px] text-gray-400 uppercase font-bold block">Current Domain to Add:</span>
+                  <code className="text-amber-300 font-mono text-xs truncate block">{typeof window !== 'undefined' ? window.location.hostname : ''}</code>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      navigator.clipboard.writeText(window.location.hostname);
+                      setCopiedDomain(true);
+                      addToast(`Copied "${window.location.hostname}"!`, 'success');
+                      setTimeout(() => setCopiedDomain(false), 3000);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  {copiedDomain ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                  <span>{copiedDomain ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+
+              <div className="text-[11px] text-gray-400 space-y-1">
+                <p className="font-bold text-gray-300">How to fix in 30 seconds:</p>
+                <ol className="list-decimal list-inside space-y-0.5 text-gray-400 pl-1">
+                  <li>Go to <strong>Firebase Console</strong> → <strong>Authentication</strong></li>
+                  <li>Open <strong>Settings</strong> tab → <strong>Authorized domains</strong></li>
+                  <li>Click <strong>Add domain</strong> and paste: <code className="text-amber-300">{typeof window !== 'undefined' ? window.location.hostname : ''}</code></li>
+                </ol>
+              </div>
+
+              <div className="pt-2 border-t border-amber-500/20">
+                <p className="text-[11px] text-gray-300 mb-2 font-semibold">
+                  Or bypass setup & explore the app immediately:
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemo(selectedRole)}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                >
+                  <Zap size={14} />
+                  <span>Continue with 1-Click Instant Demo Access</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Standard Error Message */}
+          {errorMessage && !unauthorizedDomain && (
             <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 mb-5 animate-fade-in">
               <AlertCircle size={16} className="shrink-0 text-rose-400" />
               <span>{errorMessage}</span>
@@ -406,6 +506,32 @@ export default function Login() {
             </svg>
             <span>Continue with Google</span>
           </button>
+
+          {/* Quick 1-Click Testing Access for Evaluators & Demos */}
+          <div className="mt-5 p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center animate-fade-in">
+            <p className="text-[11px] text-gray-400 mb-2.5 font-medium flex items-center justify-center gap-1.5">
+              <Sparkles size={13} className="text-amber-400 shrink-0" />
+              <span>Instant preview without Google Auth:</span>
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickDemo('user')}
+                disabled={isLoading}
+                className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white transition-all cursor-pointer active:scale-95"
+              >
+                👤 Customer Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo('garage_owner')}
+                disabled={isLoading}
+                className="py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] font-bold text-amber-300 hover:text-amber-200 transition-all cursor-pointer active:scale-95"
+              >
+                🔧 Garage HQ Demo
+              </button>
+            </div>
+          </div>
 
           {/* Footer Terms */}
           <p className="text-center text-[10px] text-gray-500 mt-5 pt-3 border-t border-white/5">

@@ -62,84 +62,85 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-[#050505] text-white">
+    <div className="bg-[#050505] text-white overflow-x-hidden">
 
       {/* ─── HERO ───────────────────────────────────── */}
-      <section
-        className="relative w-full min-h-[90vh] flex flex-col justify-center -mt-16 pt-32 pb-24"
-        style={{
-          backgroundImage: 'url("https://images.unsplash.com/photo-1625047509168-a7026f36de04?w=1920&h=1080&fit=crop")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-[#050505]/90 via-[#050505]/75 to-[#050505]/60 z-0" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent z-0" />
+      <section className="relative w-full min-h-[88vh] sm:min-h-[92vh] flex flex-col justify-center -mt-16 pt-28 pb-16 sm:pt-36 sm:pb-24 overflow-hidden">
+        {/* Responsive Background Layer (Mobile-safe, eliminates fixed attachment glitches) */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://images.unsplash.com/photo-1625047509168-a7026f36de04?w=1920&h=1080&fit=crop"
+            alt="Automotive Service Background"
+            className="w-full h-full object-cover object-center filter brightness-[0.38] contrast-[1.15]"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/95 via-[#050505]/70 to-[#050505]" />
+          <div className="absolute inset-0 bg-radial from-transparent via-black/40 to-[#050505]/95" />
+        </div>
 
-        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-5 sm:mb-6">
             <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
-            <span className="text-xs font-bold text-accent tracking-widest uppercase">India's #1 Garage Marketplace</span>
+            <span className="text-[10px] sm:text-xs font-bold text-accent tracking-widest uppercase">India's #1 Garage Marketplace</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight mb-6">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight mb-4 sm:mb-6">
             Find the Best<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f7d070] to-[#b7791f]">
               Garage Near You
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-10 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-lg text-gray-300 leading-relaxed mb-8 sm:mb-10 max-w-2xl mx-auto px-2">
             Discover verified garages, compare services & prices, book instantly, and track your vehicle — all in one place.
           </p>
 
           {/* Search bar */}
-          <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8">
-            <div className="flex gap-3 glass-panel rounded-2xl p-2 border border-white/10 shadow-2xl">
-              <div className="flex items-center gap-2 flex-1 px-3">
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-6 sm:mb-8 w-full">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 glass-panel rounded-2xl p-2 sm:p-2.5 border border-white/10 shadow-2xl backdrop-blur-xl">
+              <div className="flex items-center gap-2.5 flex-1 px-3 py-2.5 sm:py-0 bg-white/5 sm:bg-transparent rounded-xl sm:rounded-none">
                 <MapPin size={18} className="text-accent shrink-0" />
                 <input
                   type="text"
                   value={searchCity}
                   onChange={(e) => setSearchCity(e.target.value)}
                   placeholder="Enter your city (e.g. Mumbai, Pune, Delhi...)"
-                  className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-500"
+                  className="w-full bg-transparent text-white text-sm outline-none placeholder-gray-500"
                   id="hero-city-search"
                 />
               </div>
               <button
                 type="submit"
-                className="px-6 py-3 rounded-xl text-[#050505] font-extrabold text-sm flex items-center gap-2 transition-all hover:opacity-90 active:scale-95 shrink-0"
+                className="w-full sm:w-auto px-6 py-3 rounded-xl text-[#050505] font-extrabold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-95 shrink-0 shadow-lg cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, #d4af37, #b7791f)' }}
               >
-                <Search size={16} /> Search Garages
+                <Search size={16} /> <span>Search Garages</span>
               </button>
             </div>
           </form>
 
           {/* Quick actions */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full sm:w-auto">
             <Link
               to="/discover"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/5 border border-white/15 text-sm font-semibold hover:bg-white/10 transition-all backdrop-blur-md"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 sm:py-2.5 rounded-full bg-white/5 border border-white/15 text-xs sm:text-sm font-semibold hover:bg-white/10 transition-all backdrop-blur-md"
             >
               Browse All Garages <ChevronRight size={15} />
             </Link>
             {!isAuthenticated && (
-              <Link
-                to="/login"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[#050505] font-extrabold text-sm transition-all hover:opacity-90 active:scale-95 shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #d4af37, #b7791f)' }}
-              >
-                Sign In with Google <ArrowRight size={15} />
-              </Link>
-            )}
+               <Link
+                 to="/login"
+                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 sm:py-2.5 rounded-full text-[#050505] font-extrabold text-xs sm:text-sm transition-all hover:opacity-90 active:scale-95 shadow-lg"
+                 style={{ background: 'linear-gradient(135deg, #d4af37, #b7791f)' }}
+               >
+                 Sign In with Google <ArrowRight size={15} />
+               </Link>
+             )}
             {isAuthenticated && userProfile?.role === 'user' && (
               <Link
                 to="/discover"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[#050505] font-extrabold text-sm transition-all hover:opacity-90 shadow-lg"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 sm:py-2.5 rounded-full text-[#050505] font-extrabold text-xs sm:text-sm transition-all hover:opacity-90 shadow-lg"
                 style={{ background: 'linear-gradient(135deg, #d4af37, #b7791f)' }}
               >
                 <Wrench size={15} /> Book a Service
@@ -150,26 +151,27 @@ export default function Home() {
       </section>
 
       {/* ─── LIVE CUSTOMER ALERTS & ACTION BANNER (COLOR PSYCHOLOGY) ─── */}
-      <div className="pt-6">
+      <div className="pt-4 sm:pt-6">
         <CustomerAlertBanner onBookingUpdated={fetchFeaturedGarages} />
       </div>
 
       {/* ─── STATS ─────────────────────────────────── */}
-      <section className="py-12 bg-[#090909] border-b border-white/5 z-10 relative">
+      <section className="py-8 sm:py-12 bg-[#090909] border-b border-white/5 z-10 relative">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
             {STATS.map((s) => (
-              <div key={s.label} className="glass-card rounded-2xl p-5 text-center border border-white/8 hover:border-accent/30 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center mx-auto mb-3">
+              <div key={s.label} className="glass-card rounded-2xl p-3.5 sm:p-5 text-center border border-white/8 hover:border-accent/30 transition-all flex flex-col items-center justify-center">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-2 sm:mb-3">
                   {s.icon}
                 </div>
-                <p className="text-2xl font-extrabold text-white">{s.value}</p>
-                <p className="text-xs text-gray-400 mt-1">{s.label}</p>
+                <p className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">{s.value}</p>
+                <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5 leading-tight">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
+
 
       {/* ─── FEATURED GARAGES ──────────────────────── */}
       <section className="py-20 bg-[#050505] border-b border-white/5 relative z-10">
@@ -338,9 +340,9 @@ export default function Home() {
       </section>
 
       {/* ─── LIST YOUR GARAGE CTA ─────────────────── */}
-      <section className="py-20 bg-[#050505] relative z-10">
+      <section className="py-14 sm:py-20 bg-[#050505] relative z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="glass-panel rounded-3xl p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden">
+          <div className="glass-panel rounded-3xl p-6 sm:p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-72 h-72 bg-amber-500/10 blur-[100px] rounded-full pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
 
@@ -355,25 +357,25 @@ export default function Home() {
                 <p className="text-gray-400 text-sm leading-relaxed max-w-lg">
                   Join 500+ workshops on VahanSangam. List your garage for free, receive verified online bookings, and build your digital reputation with genuine customer reviews.
                 </p>
-                <div className="flex flex-wrap gap-4 mt-5 text-xs text-gray-300">
+                <div className="flex flex-wrap justify-center md:justify-start gap-3 sm:gap-4 mt-5 text-xs text-gray-300">
                   {['Free Listing', 'Online Bookings', 'Customer Reviews', 'Dashboard Analytics'].map(f => (
                     <span key={f} className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} className="text-emerald-400" /> {f}
+                      <CheckCircle2 size={13} className="text-emerald-400 shrink-0" /> {f}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="shrink-0 mt-8 md:mt-0 flex flex-col gap-3">
+              <div className="shrink-0 mt-8 md:mt-0 flex flex-col items-center md:items-start gap-3 w-full sm:w-auto">
                 <Link
                   to="/login"
                   state={{ defaultRole: 'garage_owner' }}
-                  className="inline-flex items-center justify-center gap-2 text-[#050505] font-extrabold px-8 py-4 rounded-full hover:opacity-90 transition-all hover:scale-105 active:scale-95 text-sm shadow-[0_0_30px_rgba(212,175,55,0.3)] whitespace-nowrap"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-[#050505] font-extrabold px-6 sm:px-8 py-3.5 sm:py-4 rounded-full hover:opacity-90 transition-all hover:scale-105 active:scale-95 text-sm shadow-[0_0_30px_rgba(212,175,55,0.3)] text-center cursor-pointer"
                   style={{ background: 'linear-gradient(135deg, #d4af37, #b7791f)' }}
                 >
-                  <Building2 size={16} /> Register Your Garage
+                  <Building2 size={16} /> <span>Register Your Garage</span>
                 </Link>
-                <p className="text-[11px] text-gray-500 text-center">
+                <p className="text-[11px] text-gray-500 text-center w-full">
                   <Shield size={10} className="inline mr-1" /> Google Sign-In · Takes 5 minutes
                 </p>
               </div>

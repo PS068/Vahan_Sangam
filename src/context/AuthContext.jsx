@@ -207,6 +207,10 @@ export const AuthProvider = ({ children }) => {
       if (err.code === 'auth/popup-blocked') {
         throw new Error('Popup was blocked by your browser. Please allow popups for this site.');
       }
+      if (err.code === 'auth/unauthorized-domain') {
+        const domain = typeof window !== 'undefined' ? window.location.hostname : 'your-domain';
+        throw new Error(`Domain "${domain}" is not authorized in Firebase Console. Add it in Firebase Console -> Authentication -> Settings -> Authorized domains, or use 1-Click Demo Login.`);
+      }
       throw new Error(err.message || 'Google sign-in failed. Please try again.');
     }
   };
